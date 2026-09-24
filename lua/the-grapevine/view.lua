@@ -165,7 +165,15 @@ local function open_float(lines, highlights)
     local path = (state.root and state.root ~= "") and (state.root .. "/" .. target.file) or target.file
     vim.cmd("edit " .. vim.fn.fnameescape(path))
     if target.line then
-      vim.api.nvim_win_set_cursor(0, { target.line, 0 })
+      -- target.line is the line number GitHub recorded the comment
+      -- against, which can be stale by the time you actually jump here --
+      -- the local file may have changed (or the comment used
+      -- originalLine, an outdated-thread fallback) since then. Clamping
+      -- instead of erroring lands on the closest valid line rather than
+      -- crashing E5108 on an out-of-range cursor position.
+      local line_count = vim.api.nvim_buf_line_count(0)
+      local clamped_line = math.max(1, math.min(target.line, line_count))
+      vim.api.nvim_win_set_cursor(0, { clamped_line, 0 })
     end
   end, opts)
 

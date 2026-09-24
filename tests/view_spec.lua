@@ -378,6 +378,56 @@ describe("the-grapevine.view.open_loading / open", function()
     vim.fn.delete(tmpfile)
   end)
 
+  it("<CR> clamps to the last line instead of erroring when target.line exceeds the local file's line count", function()
+    -- Real-world case: GitHub recorded the comment against a line number
+    -- that no longer exists locally -- the file has since shrunk, or the
+    -- comment used the originalLine fallback for an outdated thread.
+    -- Previously this raised E5108 "Invalid cursor line: out of range"
+    -- from nvim_win_set_cursor.
+    local tmpfile = vim.fn.tempname() .. ".lua"
+    vim.fn.writefile({ "one", "two", "three" }, tmpfile) -- only 3 lines
+    local root = vim.fn.fnamemodify(tmpfile, ":h")
+    local relative_file = vim.fn.fnamemodify(tmpfile, ":t")
+
+    local grouped = {
+      {
+        file = relative_file,
+        threads = {
+          {
+            file = relative_file,
+            line = 999, -- far beyond the file's actual 3 lines
+            resolved = false,
+            comments = { { author = "a", body = "stale line comment", created_at = "2026-01-01T00:00:00Z" } },
+          },
+        },
+      },
+    }
+    view.open(grouped, root)
+    local win = view._last_win
+    vim.api.nvim_set_current_win(win)
+
+    local buf = vim.api.nvim_win_get_buf(win)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local target_row
+    for i, line in ipairs(lines) do
+      if line:find("stale line comment", 1, true) then
+        target_row = i
+        break
+      end
+    end
+    assert.is_not_nil(target_row)
+    vim.api.nvim_win_set_cursor(win, { target_row, 0 })
+
+    assert.has_no.errors(function()
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "x", false)
+    end)
+
+    assert.are.equal(vim.fn.resolve(tmpfile), vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()))
+    assert.are.equal(3, vim.api.nvim_win_get_cursor(0)[1], "cursor must clamp to the last line (3), not error")
+
+    vim.fn.delete(tmpfile)
+  end)
+
   it("close closes the window when one is open", function()
     view.open({
       {
