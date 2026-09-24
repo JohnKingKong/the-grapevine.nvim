@@ -2,7 +2,7 @@
 local M = {}
 
 local function run(cmd, callback)
-  vim.system(cmd, { text = true }, callback)
+  vim.system(cmd, { text = true }, vim.schedule_wrap(callback))
 end
 
 function M.find_pr(callback)

@@ -37,6 +37,9 @@ describe("the-grapevine.gh", function()
       gh.find_pr(function(result_pr, result_err)
         pr, err = result_pr, result_err
       end)
+      vim.wait(100, function()
+        return pr ~= nil or err ~= nil
+      end)
 
       assert.is_nil(err)
       assert.are.same({
@@ -56,6 +59,9 @@ describe("the-grapevine.gh", function()
       gh.find_pr(function(result_pr, result_err)
         pr, err = result_pr, result_err
       end)
+      vim.wait(100, function()
+        return pr ~= nil or err ~= nil
+      end)
 
       assert.is_nil(pr)
       assert.is_true(err:find("not a git repository") ~= nil)
@@ -74,6 +80,9 @@ describe("the-grapevine.gh", function()
       gh.find_pr(function(result_pr, result_err)
         pr, err = result_pr, result_err
       end)
+      vim.wait(100, function()
+        return pr ~= nil or err ~= nil
+      end)
 
       assert.is_nil(pr)
       assert.is_true(err:find("No open PR") ~= nil)
@@ -87,6 +96,9 @@ describe("the-grapevine.gh", function()
       local pr, err
       gh.find_pr(function(result_pr, result_err)
         pr, err = result_pr, result_err
+      end)
+      vim.wait(100, function()
+        return pr ~= nil or err ~= nil
       end)
 
       assert.is_nil(pr)
@@ -130,6 +142,9 @@ describe("the-grapevine.gh", function()
       gh.fetch_threads({ owner = "o", repo = "r", number = 1, url = "u" }, function(result_threads, result_err)
         threads, err = result_threads, result_err
       end)
+      vim.wait(100, function()
+        return threads ~= nil or err ~= nil
+      end)
 
       assert.is_nil(err)
       assert.are.equal(1, #threads)
@@ -149,6 +164,9 @@ describe("the-grapevine.gh", function()
       gh.fetch_threads({ owner = "o", repo = "r", number = 1, url = "u" }, function(result_threads, result_err)
         threads, err = result_threads, result_err
       end)
+      vim.wait(100, function()
+        return threads ~= nil or err ~= nil
+      end)
 
       assert.is_nil(err)
       assert.are.same({}, threads)
@@ -163,6 +181,9 @@ describe("the-grapevine.gh", function()
       gh.fetch_threads({ owner = "o", repo = "r", number = 1, url = "u" }, function(result_threads, result_err)
         threads, err = result_threads, result_err
       end)
+      vim.wait(100, function()
+        return threads ~= nil or err ~= nil
+      end)
 
       assert.is_nil(threads)
       assert.is_true(err:find("bad credentials") ~= nil)
@@ -176,6 +197,9 @@ describe("the-grapevine.gh", function()
       local threads, err
       gh.fetch_threads({ owner = "o", repo = "r", number = 1, url = "u" }, function(result_threads, result_err)
         threads, err = result_threads, result_err
+      end)
+      vim.wait(100, function()
+        return threads ~= nil or err ~= nil
       end)
 
       assert.is_nil(threads)
