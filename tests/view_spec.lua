@@ -273,4 +273,32 @@ describe("the-grapevine.view.open_loading / open", function()
 
     vim.fn.delete(tmpfile)
   end)
+
+  it("close closes the window when one is open", function()
+    view.open({
+      {
+        file = "src/a.lua",
+        threads = {
+          {
+            file = "src/a.lua",
+            line = 1,
+            resolved = false,
+            comments = { { author = "a", body = "hi", created_at = "2026-01-01T00:00:00Z" } },
+          },
+        },
+      },
+    })
+    local win = view._last_win
+    assert.is_true(vim.api.nvim_win_is_valid(win))
+
+    view.close()
+
+    assert.is_false(vim.api.nvim_win_is_valid(win))
+  end)
+
+  it("close does not error when no window is open", function()
+    assert.has_no.errors(function()
+      view.close()
+    end)
+  end)
 end)

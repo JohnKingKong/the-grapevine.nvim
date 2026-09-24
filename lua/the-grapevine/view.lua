@@ -131,4 +131,10 @@ function M.open(grouped_threads)
   M._last_win = state.win
 end
 
+function M.close()
+  if state.win and vim.api.nvim_win_is_valid(state.win) then
+    pcall(vim.api.nvim_win_close, state.win, true)
+  end
+end
+
 return M

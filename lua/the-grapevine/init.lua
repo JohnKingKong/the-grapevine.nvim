@@ -11,12 +11,14 @@ function M.open()
 
   gh.find_pr(function(pr, find_err)
     if not pr then
+      view.close()
       vim.notify("the-grapevine: " .. find_err, vim.log.levels.ERROR)
       return
     end
 
     gh.fetch_threads(pr, function(raw_threads, fetch_err)
       if not raw_threads then
+        view.close()
         vim.notify("the-grapevine: " .. fetch_err, vim.log.levels.ERROR)
         return
       end

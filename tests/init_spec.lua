@@ -53,6 +53,7 @@ describe("the-grapevine.init", function()
 
     it("notifies and does not call view.open when find_pr fails", function()
       local view_open_called = false
+      local view_close_called = false
       package.loaded["the-grapevine.gh"] = {
         find_pr = function(callback)
           callback(nil, "No open PR found for the current branch")
@@ -63,6 +64,9 @@ describe("the-grapevine.init", function()
       }
       package.loaded["the-grapevine.view"] = {
         open_loading = function() end,
+        close = function()
+          view_close_called = true
+        end,
         open = function()
           view_open_called = true
         end,
@@ -72,6 +76,7 @@ describe("the-grapevine.init", function()
       grapevine.open()
 
       assert.is_false(view_open_called)
+      assert.is_true(view_close_called)
       assert.are.equal(1, #notified)
       assert.are.equal(vim.log.levels.ERROR, notified[1].level)
       assert.is_true(notified[1].msg:find("No open PR") ~= nil)
@@ -79,6 +84,7 @@ describe("the-grapevine.init", function()
 
     it("notifies and does not call view.open when fetch_threads fails", function()
       local view_open_called = false
+      local view_close_called = false
       package.loaded["the-grapevine.gh"] = {
         find_pr = function(callback)
           callback({ owner = "o", repo = "r", number = 1, url = "u" }, nil)
@@ -89,6 +95,9 @@ describe("the-grapevine.init", function()
       }
       package.loaded["the-grapevine.view"] = {
         open_loading = function() end,
+        close = function()
+          view_close_called = true
+        end,
         open = function()
           view_open_called = true
         end,
@@ -98,6 +107,7 @@ describe("the-grapevine.init", function()
       grapevine.open()
 
       assert.is_false(view_open_called)
+      assert.is_true(view_close_called)
       assert.are.equal(1, #notified)
       assert.are.equal(vim.log.levels.ERROR, notified[1].level)
       assert.is_true(notified[1].msg:find("bad credentials") ~= nil)
