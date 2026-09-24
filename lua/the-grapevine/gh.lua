@@ -39,4 +39,62 @@ function M.find_pr(callback)
   end)
 end
 
+local REVIEW_THREADS_QUERY = [[
+query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          path
+          line
+          originalLine
+          comments(first: 50) {
+            nodes {
+              author { login }
+              body
+              createdAt
+            }
+          }
+        }
+      }
+    }
+  }
+}
+]]
+
+function M.fetch_threads(pr, callback)
+  run({
+    "gh",
+    "api",
+    "graphql",
+    "-f",
+    "query=" .. REVIEW_THREADS_QUERY,
+    "-F",
+    "owner=" .. pr.owner,
+    "-F",
+    "repo=" .. pr.repo,
+    "-F",
+    "number=" .. pr.number,
+  }, function(result)
+    if result.code ~= 0 then
+      callback(nil, "gh api graphql failed: " .. (result.stderr or ""))
+      return
+    end
+    local ok, decoded = pcall(vim.json.decode, result.stdout)
+    if
+      not ok
+      or type(decoded) ~= "table"
+      or type(decoded.data) ~= "table"
+      or type(decoded.data.repository) ~= "table"
+      or type(decoded.data.repository.pullRequest) ~= "table"
+      or type(decoded.data.repository.pullRequest.reviewThreads) ~= "table"
+    then
+      callback(nil, "gh api graphql returned unexpected output")
+      return
+    end
+    callback(decoded.data.repository.pullRequest.reviewThreads.nodes or {}, nil)
+  end)
+end
+
 return M
