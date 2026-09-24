@@ -1,3 +1,4 @@
+-- tests/gh_spec.lua
 describe("the-grapevine.gh", function()
   local gh
   local original_system
@@ -16,9 +17,17 @@ describe("the-grapevine.gh", function()
     it("combines gh repo view and gh pr view into one result on success", function()
       vim.system = function(cmd, _opts, callback)
         if cmd[1] == "gh" and cmd[2] == "repo" and cmd[3] == "view" then
-          callback({ code = 0, stdout = '{"name":"clickaholic.nvim","owner":{"id":"x","login":"JohnKingKong"}}', stderr = "" })
+          callback({
+            code = 0,
+            stdout = '{"name":"clickaholic.nvim","owner":{"id":"x","login":"JohnKingKong"}}',
+            stderr = "",
+          })
         elseif cmd[1] == "gh" and cmd[2] == "pr" and cmd[3] == "view" then
-          callback({ code = 0, stdout = '{"number":42,"state":"OPEN","url":"https://github.com/JohnKingKong/clickaholic.nvim/pull/42"}', stderr = "" })
+          callback({
+            code = 0,
+            stdout = '{"number":42,"state":"OPEN","url":"https://github.com/JohnKingKong/clickaholic.nvim/pull/42"}',
+            stderr = "",
+          })
         else
           error("unexpected command: " .. table.concat(cmd, " "))
         end
@@ -39,7 +48,7 @@ describe("the-grapevine.gh", function()
     end)
 
     it("reports an error when gh repo view fails", function()
-      vim.system = function(cmd, _opts, callback)
+      vim.system = function(_cmd, _opts, callback)
         callback({ code = 1, stdout = "", stderr = "not a git repository" })
       end
 
@@ -71,7 +80,7 @@ describe("the-grapevine.gh", function()
     end)
 
     it("reports an error on malformed JSON from gh repo view", function()
-      vim.system = function(cmd, _opts, callback)
+      vim.system = function(_cmd, _opts, callback)
         callback({ code = 0, stdout = "not json", stderr = "" })
       end
 

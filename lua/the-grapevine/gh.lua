@@ -1,3 +1,4 @@
+-- lua/the-grapevine/gh.lua
 local M = {}
 
 local function run(cmd, callback)
@@ -11,7 +12,13 @@ function M.find_pr(callback)
       return
     end
     local ok, repo_data = pcall(vim.json.decode, repo_result.stdout)
-    if not ok or type(repo_data) ~= "table" or type(repo_data.owner) ~= "table" or not repo_data.owner.login or not repo_data.name then
+    if
+      not ok
+      or type(repo_data) ~= "table"
+      or type(repo_data.owner) ~= "table"
+      or not repo_data.owner.login
+      or not repo_data.name
+    then
       callback(nil, "gh repo view returned unexpected output")
       return
     end
