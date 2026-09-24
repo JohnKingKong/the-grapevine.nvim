@@ -36,6 +36,23 @@ file; resolved threads are hidden by default.
 | `R` | Toggle resolved threads visible/hidden |
 | `q` / `<Esc>` | Close |
 
+## Highlighting
+
+Comment text wraps at word boundaries regardless of your global `wrap`
+setting. File paths, comment authors, the resolved checkmark, and the
+`file:line` location are each highlighted via their own group, linked
+to your colorscheme's existing groups rather than fixed colors:
+
+| Group | Linked to | Used for |
+|---|---|---|
+| `GrapevineFile` | `Title` | File header lines |
+| `GrapevineAuthor` | `Function` | Comment author |
+| `GrapevineLocation` | `Comment` | `file:line` |
+| `GrapevineResolved` | `DiagnosticOk` | The resolved checkmark |
+
+Override any of them in your own config, e.g.
+`vim.api.nvim_set_hl(0, "GrapevineAuthor", { fg = "#ff00ff" })`.
+
 ## Scope
 
 Read-only for now — no replying or resolving from within Neovim.

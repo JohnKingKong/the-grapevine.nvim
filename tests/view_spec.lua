@@ -116,6 +116,77 @@ describe("the-grapevine.view", function()
       assert.are.same({}, lines)
       assert.are.same({}, targets)
     end)
+
+    it("inserts a blank line between threads in the same file, and between files", function()
+      local lines = view.render(grouped, true)
+      -- src/a.lua's two threads (unresolved, resolved) should have a blank
+      -- line between them, and its last thread should have a blank line
+      -- before src/b.lua's header -- but no trailing blank line at the
+      -- very end.
+      local blank_indices = {}
+      for i, line in ipairs(lines) do
+        if line == "" then
+          table.insert(blank_indices, i)
+        end
+      end
+      assert.are.equal(
+        2,
+        #blank_indices,
+        "expected exactly 2 blank lines (between the 2 threads in src/a.lua, and before src/b.lua's header)"
+      )
+      assert.are_not.equal(
+        #lines,
+        blank_indices[#blank_indices],
+        "the last line must not be blank (trailing blank trimmed)"
+      )
+    end)
+
+    it("returns highlight metadata for the file header, author, resolved mark, and location", function()
+      local lines, _, highlights = view.render(grouped, true)
+
+      local function find(hl_group, line)
+        for _, h in ipairs(highlights) do
+          if h.hl_group == hl_group and h.line == line then
+            return h
+          end
+        end
+        return nil
+      end
+
+      -- Line 1 is always the first file header (src/a.lua).
+      local file_hl = find("GrapevineFile", 1)
+      assert.is_not_nil(file_hl)
+      assert.are.equal(0, file_hl.col_start)
+      assert.are.equal(#"src/a.lua", file_hl.col_end)
+      assert.are.equal(lines[1]:sub(file_hl.col_start + 1, file_hl.col_end), "src/a.lua")
+
+      -- Find the author/location line for the resolved thread (reviewer2)
+      -- to confirm the resolved-mark highlight is present too.
+      local resolved_line_no
+      for i, line in ipairs(lines) do
+        if line:find("reviewer2", 1, true) then
+          resolved_line_no = i
+          break
+        end
+      end
+      assert.is_not_nil(resolved_line_no)
+
+      local resolved_hl = find("GrapevineResolved", resolved_line_no)
+      assert.is_not_nil(resolved_hl, "expected a GrapevineResolved highlight on the resolved thread's line")
+
+      local author_hl = find("GrapevineAuthor", resolved_line_no)
+      assert.is_not_nil(author_hl)
+      assert.are.equal("reviewer2", lines[resolved_line_no]:sub(author_hl.col_start + 1, author_hl.col_end))
+
+      local location_hl = find("GrapevineLocation", resolved_line_no)
+      assert.is_not_nil(location_hl)
+      assert.are.equal("src/a.lua:20", lines[resolved_line_no]:sub(location_hl.col_start + 1, location_hl.col_end))
+    end)
+
+    it("returns no highlights for an empty grouped list", function()
+      local _, _, highlights = view.render({}, true)
+      assert.are.same({}, highlights)
+    end)
   end)
 end)
 
@@ -180,6 +251,33 @@ describe("the-grapevine.view.open_loading / open", function()
       },
     })
     assert.is_true(vim.api.nvim_win_is_valid(view._last_win))
+  end)
+
+  it("enables wrap/linebreak/breakindent on the window regardless of the global default", function()
+    local original_wrap = vim.o.wrap
+    vim.o.wrap = false -- simulate LazyVim's global default, which disables it
+
+    view.open({
+      {
+        file = "src/a.lua",
+        threads = {
+          {
+            file = "src/a.lua",
+            line = 1,
+            resolved = false,
+            comments = {
+              { author = "a", body = "a long comment that should wrap", created_at = "2026-01-01T00:00:00Z" },
+            },
+          },
+        },
+      },
+    })
+
+    assert.is_true(vim.wo[view._last_win].wrap, "wrap must be enabled locally, independent of the global default")
+    assert.is_true(vim.wo[view._last_win].linebreak)
+    assert.is_true(vim.wo[view._last_win].breakindent)
+
+    vim.o.wrap = original_wrap
   end)
 
   it("q closes the window", function()
