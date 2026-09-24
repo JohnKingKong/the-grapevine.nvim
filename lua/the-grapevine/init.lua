@@ -29,7 +29,7 @@ function M.open()
       end
 
       local grouped = require("the-grapevine.parse").group_by_file(raw_threads)
-      view.open(grouped)
+      view.open(grouped, pr.root)
     end)
   end)
 end

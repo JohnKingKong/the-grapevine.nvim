@@ -34,7 +34,17 @@ function M.find_pr(callback)
         callback(nil, "gh pr view returned unexpected output")
         return
       end
-      callback({ owner = owner, repo = repo, number = pr_data.number, url = pr_data.url }, nil)
+
+      run({ "git", "rev-parse", "--show-toplevel" }, function(root_result)
+        local root = nil
+        if root_result.code == 0 and root_result.stdout then
+          root = root_result.stdout:gsub("%s+$", "")
+          if root == "" then
+            root = nil
+          end
+        end
+        callback({ owner = owner, repo = repo, number = pr_data.number, url = pr_data.url, root = root }, nil)
+      end)
     end)
   end)
 end

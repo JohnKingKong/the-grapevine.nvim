@@ -15,11 +15,11 @@ describe("the-grapevine.init", function()
 
   describe("open", function()
     it("finds the PR, fetches threads, groups them, and opens the view on success", function()
-      local loading_opened, view_opened_with
+      local loading_opened, view_opened_with, view_opened_with_root
 
       package.loaded["the-grapevine.gh"] = {
         find_pr = function(callback)
-          callback({ owner = "o", repo = "r", number = 1, url = "u" }, nil)
+          callback({ owner = "o", repo = "r", number = 1, url = "u", root = "/some/repo" }, nil)
         end,
         fetch_threads = function(_pr, callback)
           callback({
@@ -36,8 +36,9 @@ describe("the-grapevine.init", function()
         open_loading = function()
           loading_opened = true
         end,
-        open = function(grouped)
+        open = function(grouped, root)
           view_opened_with = grouped
+          view_opened_with_root = root
         end,
       }
 
@@ -48,6 +49,7 @@ describe("the-grapevine.init", function()
       assert.is_not_nil(view_opened_with)
       assert.are.equal(1, #view_opened_with)
       assert.are.equal("src/a.lua", view_opened_with[1].file)
+      assert.are.equal("/some/repo", view_opened_with_root)
       assert.are.equal(0, #notified, "no error notification on the happy path")
     end)
 

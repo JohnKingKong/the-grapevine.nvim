@@ -48,7 +48,7 @@ function M.render(grouped_threads, show_resolved)
 end
 
 M._last_win = nil
-local state = { buf = nil, win = nil, grouped = {}, show_resolved = false, targets = {}, origin_win = nil }
+local state = { buf = nil, win = nil, grouped = {}, show_resolved = false, targets = {}, origin_win = nil, root = nil }
 
 local function open_float(lines)
   local buf = vim.api.nvim_create_buf(false, true)
@@ -96,7 +96,8 @@ local function open_float(lines)
     if state.origin_win and vim.api.nvim_win_is_valid(state.origin_win) then
       vim.api.nvim_set_current_win(state.origin_win)
     end
-    vim.cmd("edit " .. vim.fn.fnameescape(target.file))
+    local path = (state.root and state.root ~= "") and (state.root .. "/" .. target.file) or target.file
+    vim.cmd("edit " .. vim.fn.fnameescape(path))
     if target.line then
       vim.api.nvim_win_set_cursor(0, { target.line, 0 })
     end
@@ -110,12 +111,14 @@ function M.open_loading()
   state.grouped = {}
   state.show_resolved = false
   state.targets = {}
+  state.root = nil
   state.buf, state.win = open_float({ "Loading PR comments…" })
   M._last_win = state.win
 end
 
-function M.open(grouped_threads)
+function M.open(grouped_threads, root)
   state.grouped = grouped_threads
+  state.root = root
   state.show_resolved = false
   local lines, targets = M.render(grouped_threads, state.show_resolved)
   state.targets = targets

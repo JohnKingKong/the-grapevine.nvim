@@ -224,13 +224,19 @@ describe("the-grapevine.view.open_loading / open", function()
   it("<CR> on a comment line closes the window and opens that file at that line", function()
     local tmpfile = vim.fn.tempname() .. ".lua"
     vim.fn.writefile({ "one", "two", "three", "four", "five" }, tmpfile)
+    -- root is a separate directory from the target file, and target.file is
+    -- root-relative (as GitHub's API always returns it) -- this proves the
+    -- <CR> handler actually joins state.root with target.file rather than
+    -- just happening to work because the path was already absolute.
+    local root = vim.fn.fnamemodify(tmpfile, ":h")
+    local relative_file = vim.fn.fnamemodify(tmpfile, ":t")
 
     local grouped = {
       {
-        file = tmpfile,
+        file = relative_file,
         threads = {
           {
-            file = tmpfile,
+            file = relative_file,
             line = 3,
             resolved = false,
             comments = { { author = "a", body = "look here", created_at = "2026-01-01T00:00:00Z" } },
@@ -238,7 +244,7 @@ describe("the-grapevine.view.open_loading / open", function()
         },
       },
     }
-    view.open(grouped)
+    view.open(grouped, root)
     local win = view._last_win
     vim.api.nvim_set_current_win(win)
 

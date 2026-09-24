@@ -28,6 +28,8 @@ describe("the-grapevine.gh", function()
             stdout = '{"number":42,"state":"OPEN","url":"https://github.com/JohnKingKong/clickaholic.nvim/pull/42"}',
             stderr = "",
           })
+        elseif cmd[1] == "git" and cmd[2] == "rev-parse" then
+          callback({ code = 0, stdout = "/home/jrv/clickaholic.nvim\n", stderr = "" })
         else
           error("unexpected command: " .. table.concat(cmd, " "))
         end
@@ -47,7 +49,43 @@ describe("the-grapevine.gh", function()
         repo = "clickaholic.nvim",
         number = 42,
         url = "https://github.com/JohnKingKong/clickaholic.nvim/pull/42",
+        root = "/home/jrv/clickaholic.nvim",
       }, pr)
+    end)
+
+    it("still succeeds with a nil root when git rev-parse fails", function()
+      vim.system = function(cmd, _opts, callback)
+        if cmd[1] == "gh" and cmd[2] == "repo" and cmd[3] == "view" then
+          callback({
+            code = 0,
+            stdout = '{"name":"clickaholic.nvim","owner":{"id":"x","login":"JohnKingKong"}}',
+            stderr = "",
+          })
+        elseif cmd[1] == "gh" and cmd[2] == "pr" and cmd[3] == "view" then
+          callback({
+            code = 0,
+            stdout = '{"number":42,"state":"OPEN","url":"https://github.com/JohnKingKong/clickaholic.nvim/pull/42"}',
+            stderr = "",
+          })
+        elseif cmd[1] == "git" and cmd[2] == "rev-parse" then
+          callback({ code = 128, stdout = "", stderr = "not a git repository" })
+        else
+          error("unexpected command: " .. table.concat(cmd, " "))
+        end
+      end
+
+      local pr, err
+      gh.find_pr(function(result_pr, result_err)
+        pr, err = result_pr, result_err
+      end)
+      vim.wait(100, function()
+        return pr ~= nil or err ~= nil
+      end)
+
+      assert.is_nil(err)
+      assert.is_not_nil(pr)
+      assert.is_nil(pr.root)
+      assert.are.equal(42, pr.number)
     end)
 
     it("reports an error when gh repo view fails", function()
