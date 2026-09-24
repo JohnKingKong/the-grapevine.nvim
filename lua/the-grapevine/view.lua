@@ -47,4 +47,88 @@ function M.render(grouped_threads, show_resolved)
   return lines, targets
 end
 
+M._last_win = nil
+local state = { buf = nil, win = nil, grouped = {}, show_resolved = false, targets = {}, origin_win = nil }
+
+local function open_float(lines)
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "wipe"
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+
+  local width = math.floor(vim.o.columns * 0.7)
+  local height = math.floor(vim.o.lines * 0.6)
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    row = math.floor((vim.o.lines - height) / 2),
+    col = math.floor((vim.o.columns - width) / 2),
+    width = width,
+    height = height,
+    border = "rounded",
+    title = " the grapevine ",
+    footer = " R toggle resolved  <CR> jump  q close ",
+    footer_pos = "left",
+  })
+
+  local opts = { buffer = buf, nowait = true, silent = true }
+  vim.keymap.set("n", "q", function()
+    pcall(vim.api.nvim_win_close, win, true)
+  end, opts)
+  vim.keymap.set("n", "<Esc>", function()
+    pcall(vim.api.nvim_win_close, win, true)
+  end, opts)
+  vim.keymap.set("n", "R", function()
+    state.show_resolved = not state.show_resolved
+    local new_lines, new_targets = M.render(state.grouped, state.show_resolved)
+    state.targets = new_targets
+    vim.bo[buf].modifiable = true
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, new_lines)
+    vim.bo[buf].modifiable = false
+  end, opts)
+  vim.keymap.set("n", "<CR>", function()
+    local row = vim.api.nvim_win_get_cursor(win)[1]
+    local target = state.targets[row]
+    if not target then
+      return
+    end
+    pcall(vim.api.nvim_win_close, win, true)
+    if state.origin_win and vim.api.nvim_win_is_valid(state.origin_win) then
+      vim.api.nvim_set_current_win(state.origin_win)
+    end
+    vim.cmd("edit " .. vim.fn.fnameescape(target.file))
+    if target.line then
+      vim.api.nvim_win_set_cursor(0, { target.line, 0 })
+    end
+  end, opts)
+
+  return buf, win
+end
+
+function M.open_loading()
+  state.origin_win = vim.api.nvim_get_current_win()
+  state.grouped = {}
+  state.show_resolved = false
+  state.targets = {}
+  state.buf, state.win = open_float({ "Loading PR comments…" })
+  M._last_win = state.win
+end
+
+function M.open(grouped_threads)
+  state.grouped = grouped_threads
+  state.show_resolved = false
+  local lines, targets = M.render(grouped_threads, state.show_resolved)
+  state.targets = targets
+
+  if state.win and vim.api.nvim_win_is_valid(state.win) then
+    vim.bo[state.buf].modifiable = true
+    vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+    vim.bo[state.buf].modifiable = false
+  else
+    state.origin_win = state.origin_win or vim.api.nvim_get_current_win()
+    state.buf, state.win = open_float(lines)
+  end
+  M._last_win = state.win
+end
+
 return M
