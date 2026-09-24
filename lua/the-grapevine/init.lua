@@ -4,6 +4,11 @@ local M = {}
 function M.setup(_opts) end
 
 function M.open()
+  if vim.fn.executable("gh") == 0 then
+    vim.notify("the-grapevine: the 'gh' CLI is not installed or not on PATH", vim.log.levels.ERROR)
+    return
+  end
+
   local view = require("the-grapevine.view")
   local gh = require("the-grapevine.gh")
 

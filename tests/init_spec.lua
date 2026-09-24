@@ -113,4 +113,53 @@ describe("the-grapevine.init", function()
       assert.is_true(notified[1].msg:find("bad credentials") ~= nil)
     end)
   end)
+
+  describe("open when gh is not installed", function()
+    local original_executable
+
+    before_each(function()
+      original_executable = vim.fn.executable
+    end)
+
+    after_each(function()
+      vim.fn.executable = original_executable
+    end)
+
+    it("notifies and never reaches find_pr or view.open_loading", function()
+      vim.fn.executable = function(name)
+        if name == "gh" then
+          return 0
+        end
+        return original_executable(name)
+      end
+
+      local opened = false
+      local find_pr_called = false
+      package.loaded["the-grapevine.gh"] = {
+        find_pr = function(callback)
+          find_pr_called = true
+          callback(nil, "should not be called")
+        end,
+        fetch_threads = function(_pr, callback)
+          callback(nil, "should not be called")
+        end,
+      }
+      package.loaded["the-grapevine.view"] = {
+        open_loading = function()
+          opened = true
+        end,
+        close = function() end,
+        open = function() end,
+      }
+
+      grapevine = require("the-grapevine")
+      grapevine.open()
+
+      assert.is_false(opened, "view.open_loading must not be called when gh is missing")
+      assert.is_false(find_pr_called, "gh.find_pr must not be called when gh is missing")
+      assert.are.equal(1, #notified)
+      assert.are.equal(vim.log.levels.ERROR, notified[1].level)
+      assert.is_true(notified[1].msg:find("'gh' CLI is not installed") ~= nil)
+    end)
+  end)
 end)
